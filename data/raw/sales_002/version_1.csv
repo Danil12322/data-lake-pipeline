@@ -1,0 +1,4 @@
+"order_id,customer_id,product,quantity,price,timestamp
+1005,504,Laptop,1,1350.00,2026-09-16 09:15:00
+1006,502,Mouse,3,25.90,2026-09-16 09:25:00
+1007,505,Headphones,2,89.99,2026-09-16 10:05:00"
