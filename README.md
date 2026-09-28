@@ -27,6 +27,22 @@ Data Quality Checks
      ▼
 Gold Layer
 ```
+## Pipeline Stages
+
+| Layer | Description |
+|--------|-------------|
+| Raw | Versioned immutable CSV files |
+| Bronze | Standardized Parquet dataset |
+| Silver | Trusted business orders |
+| Gold | Customer sales analytics |
+
+The pipeline executes five stages:
+
+1. Ingestion
+2. Transformation
+3. Data Quality
+4. Silver
+5. Gold
 
 ## Tech Stack
 
