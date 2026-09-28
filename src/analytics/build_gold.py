@@ -14,7 +14,7 @@ def build_gold():
                 customer_id,
                 COUNT(*) AS orders_count,
                 SUM(total_amount) AS total_spent
-            FROM 'data/bronze/sales.parquet'
+            FROM 'data/silver/orders.parquet'
             GROUP BY customer_id
         )
         TO 'data/gold/customer_sales.parquet'
