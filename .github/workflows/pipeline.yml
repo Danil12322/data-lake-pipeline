@@ -10,9 +10,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
-
+        python-version: [ "3.11", "3.12", "3.13" ]
     steps:
       - uses: actions/checkout@v4
 
@@ -31,9 +31,17 @@ jobs:
 
       - name: Run wafer_id tests
         run: python -m src.ingestion.test_wafer_ids
-
+      - name: Create minimal test wafer file
+        run: |
+          mkdir -p source/wafer/M000001_TEST
+          cat > source/wafer/M000001_TEST/M000001_TEST-01.000 << 'EOF'
+          DefectRecordSpec 12 DEFECTID XREL YREL XINDEX YINDEX XSIZE YSIZE DEFECTAREA DSIZE CLASSNUMBER TEST IMAGECOUNT ;
+          DefectList
+          1 100.0 100.0 0 0 1.0 1.0 1.0 1.0 0 1 0
+          2 200.0 200.0 0 0 2.0 2.0 4.0 2.0 0 1 0
+          ;
+          EOF
       - name: Run full pipeline
         run: python -m src.pipeline
-
       - name: Run station & lot analytics
         run: python -m src.analytics.station_lot_analysis
