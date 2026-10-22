@@ -11,11 +11,7 @@ __pycache__/
 .pytest_cache/
 
 # Data Lake
-data/raw/
-data/bronze/
-data/silver/
-data/gold/
-data/metadata/
+data/
 logs/
 
 # IDE
@@ -25,7 +21,9 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
-# Wafer source files (not tracked)
+# Игнорируем все .000 файлы
 source/wafer/**/*.000
 source/wafer/**/*.zip
 source/wafer/**/Images/
+# Но разрешаем демо-файл для CI и быстрого старта
+!source/wafer/M000001_DEMO/M000001_DEMO-01.000
