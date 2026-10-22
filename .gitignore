@@ -1,13 +1,31 @@
-# Virtual environment
+# Virtual environments
 .venv/
+.venv_test/
+venv/
+env/
 
-# Python cache
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.pytest_cache/
 
-# PyCharm
-.idea/
-
-# Logs
+# Data Lake
+data/raw/
+data/bronze/
+data/silver/
+data/gold/
+data/metadata/
 logs/
-*.log
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+# Wafer source files (not tracked)
+source/wafer/**/*.000
+source/wafer/**/*.zip
+source/wafer/**/Images/
