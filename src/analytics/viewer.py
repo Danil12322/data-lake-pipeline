@@ -10,8 +10,8 @@ def view_gold(limit: int = 20):
 
     result = con.execute(f"""
         SELECT *
-        FROM '{sql_path(SILVER_PATH)}'
-        LIMIT {limit}
+        FROM '{BRONZE_PATH}'
+        WHERE lot_id = 'M446235.8_8958' and source_wafer_id = '@03'
     """).df()
 
     logger.info(f"Gold preview (first {limit} rows):")

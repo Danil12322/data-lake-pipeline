@@ -54,6 +54,9 @@ def build_gold():
                     step_id,
                     result_timestamp
                 FROM '{sql_path(BRONZE_PATH)}'
+                WHERE wafer_id IS NOT NULL
+                  AND inspection_run_id IS NOT NULL
+                  AND inspection_station IS NOT NULL
             ) b
             LEFT JOIN '{sql_path(SILVER_PATH)}' s
                 ON b.wafer_id = s.wafer_id

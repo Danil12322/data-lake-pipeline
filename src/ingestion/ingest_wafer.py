@@ -36,7 +36,11 @@ def ingest_wafer_files() -> None:
     if not SOURCE_DIR.exists():
         raise FileNotFoundError(f"Source directory not found: {SOURCE_DIR}")
 
-    source_files = sorted(SOURCE_DIR.rglob("*.000"))
+    # Ищем все файлы, которые начинаются с точки и цифры (например, .000, .051, .055)
+    source_files = sorted(
+        p for p in SOURCE_DIR.rglob("*")
+        if p.is_file() and p.suffix.startswith(".") and p.suffix[1:].isdigit()
+    )
     if not source_files:
         raise ValueError(f"No .000 files found in {SOURCE_DIR}")
 

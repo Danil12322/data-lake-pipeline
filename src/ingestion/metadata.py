@@ -91,4 +91,8 @@ def mark_processed(row_indices: list[int]) -> None:
 
 
 def source_files_count() -> int:
-    return len(list(SOURCE_DIR.rglob("*.000")))
+    """Считает все файлы с цифровым расширением (.000, .051, .055 и т.д.)."""
+    return sum(
+        1 for p in SOURCE_DIR.rglob("*")
+        if p.is_file() and p.suffix.startswith(".") and p.suffix[1:].isdigit()
+    )

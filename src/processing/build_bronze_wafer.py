@@ -1,68 +1,64 @@
+from pathlib import Path
 import pandas as pd
 
-from src.config import BRONZE_PATH, sql_path
-from src.ingestion.metadata import mark_processed, unprocessed_versions
-from src.ingestion.wafer_parser import parse_wafer_file
+from src.ingestion.metadata import latest_versions
+from src.ingestion.wafer_parser import parse_wafer_file, extract_sample_test_plan
 from src.logger import logger
 
 
 def build_bronze():
-    """
-    Builds the Bronze layer from unprocessed raw versions.
-
-    Incremental, append-only:
-    - reads only versions with processed_at IS NULL from ingestion_log.csv
-    - parses each .000 file, adds wafer_id and inspection_run_id
-    - appends new defects to the existing Bronze (or creates it)
-    - marks processed versions in metadata
-
-    Writes to data/bronze/defects.parquet.
-    """
-    pending = unprocessed_versions()
-
-    if not pending:
-        logger.info("No unprocessed versions. Bronze unchanged.")
-        return
+    versions = latest_versions()
+    if not versions:
+        raise FileNotFoundError("No raw versions found. Run ingestion first.")
 
     dfs = []
-    processed_rows = []
+    plan_dfs = []  # <--- Инициализируем список для планов
 
-    for item in pending:
-        file_stem = item["file_stem"]
-        raw_path = item["raw_path"]
-
+    for file_stem, raw_path in sorted(versions.items()):
         df = parse_wafer_file(raw_path)
+        if df.empty:
+            continue
 
-        wafer_id = file_stem.rsplit("-", 1)[0]
-
-        df["wafer_id"] = wafer_id
-        df["inspection_run_id"] = file_stem
-
+        # Формируем wafer_id и inspection_run_id
+        df["wafer_id"] = df["lot_id"]
+        df["inspection_run_id"] = (
+            df["lot_id"].astype(str) + "-" + df["source_wafer_id"].astype(str)
+        )
         dfs.append(df)
-        processed_rows.append(item["row_index"])
+        logger.info(
+            f"{file_stem}: {len(df)} defects ({df['source_wafer_id'].nunique()} wafers)"
+        )
 
-        logger.info(f"{file_stem}: {len(df)} defects")
+        # Сохраняем SampleTestPlan (с привязкой ко всем пластинам в файле)
+        lines = Path(raw_path).read_text(encoding="utf-8").splitlines()
+        plan = extract_sample_test_plan(lines)
+        if plan:
+            plan_df = pd.DataFrame(plan, columns=["x_index", "y_index"])
+            # Получаем все уникальные wafer_id из этого файла
+            wafer_ids = df["source_wafer_id"].unique()
+            lot_id = df["lot_id"].iloc[0] if not df.empty else None
 
-    new_data = pd.concat(dfs, ignore_index=True)
+            for wafer_id in wafer_ids:
+                plan_copy = plan_df.copy()
+                plan_copy["lot_id"] = lot_id
+                plan_copy["wafer_id"] = wafer_id
+                plan_dfs.append(plan_copy)
 
-    # Append-only: добавляем к существующему Bronze, если он есть
-    if BRONZE_PATH.exists():
-        existing = pd.read_parquet(BRONZE_PATH)
-        bronze = pd.concat([existing, new_data], ignore_index=True)
-        logger.info(f"Appended {len(new_data)} new defects to existing Bronze")
-    else:
-        bronze = new_data
-        logger.info(f"Created new Bronze with {len(new_data)} defects")
+    bronze = pd.concat(dfs, ignore_index=True)
+    Path("data/bronze").mkdir(parents=True, exist_ok=True)
+    bronze.to_parquet("data/bronze/defects.parquet", index=False)
 
-    BRONZE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    bronze.to_parquet(BRONZE_PATH, index=False)
+    # Сохраняем общий test_plan.parquet
+    if plan_dfs:
+        plan_all = pd.concat(plan_dfs, ignore_index=True)
+        # Дедуплицируем (если один и тот же план привязан к нескольким пластинам)
+        plan_all = plan_all.drop_duplicates(subset=["lot_id", "wafer_id", "x_index", "y_index"])
+        plan_all.to_parquet("data/bronze/test_plan.parquet", index=False)
+        logger.info(f"Saved test_plan.parquet: {len(plan_all)} frames")
 
-    mark_processed(processed_rows)
-
-    logger.info(f"Total wafers in Bronze: {bronze['wafer_id'].nunique()}")
-    logger.info(f"Total defects in Bronze: {len(bronze)}")
-    logger.info(f"Marked {len(processed_rows)} versions as processed")
-    logger.info(f"Saved: {sql_path(BRONZE_PATH)}")
+    logger.info(f"Total wafers: {bronze['inspection_run_id'].nunique()}")
+    logger.info(f"Total defects: {len(bronze)}")
+    logger.info("Saved: data/bronze/defects.parquet")
 
 
 if __name__ == "__main__":

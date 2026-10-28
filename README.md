@@ -267,6 +267,27 @@ Counts and shares by `class_number`. In the current dataset all defects have `cl
 
 Runs with `risk_score > 0.4` — candidates for engineer review.
 
+## Wafer Map Visualization
+
+The pipeline includes a module (`src/analytics/wafer_map.py`) that generates defect maps identical to the ones produced by professional inspection software (e.g., Klarity Defect).
+
+[Wafer Map Example](docs/wafer_map_example.png)
+
+### How coordinates are computed
+
+Raw defect files (KLARF) do not store absolute coordinates on the wafer. Instead, they store:
+- `XREL` / `YREL` — defect coordinates **inside** a specific die (frame).
+- `XINDEX` / `YINDEX` — the index of the die on the wafer grid.
+- `DiePitch` — the physical size of one die (in microns).
+- `SampleCenterLocation` — the physical coordinates of the **wafer center**.
+
+To place a defect on the wafer map, the pipeline uses the following formula:
+
+```text
+X_wafer = (XINDEX * DiePitch_X) + XREL - SampleCenterLocation_X
+Y_wafer = (YINDEX * DiePitch_Y) + YREL - SampleCenterLocation_Y
+```
+
 ## KLA/Tencor `.000` Format Notes
 
 - The `.000` files are plain text, not binary. Excel opens them as delimited text, but the pipeline reads them directly with a custom parser.

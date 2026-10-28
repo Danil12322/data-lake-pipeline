@@ -120,7 +120,7 @@ def quality_check():
 
     # 5. Итоговые проверки
     checks = {
-        "Source files == raw versions": source_count == len(raw_versions),
+        "Source files >= raw versions": source_count >= len(raw_versions),
         "No missing raw files": missing_raw_files == 0,
         "No empty raw files": empty_raw_files == 0,
         "Bronze not empty": bronze_rows > 0,

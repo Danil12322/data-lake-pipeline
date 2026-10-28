@@ -22,7 +22,7 @@ def build_silver():
 
     con = duckdb.connect()
 
-    con.execute(f"""
+    con.execute("""
         COPY (
             WITH dedup AS (
                 SELECT
@@ -31,7 +31,7 @@ def build_silver():
                         PARTITION BY wafer_id, inspection_run_id, defect_id
                         ORDER BY file_row_number DESC
                     ) AS rn
-                FROM read_parquet('{sql_path(BRONZE_PATH)}', file_row_number = true)
+                FROM read_parquet('data/bronze/defects.parquet', file_row_number = true)
             )
             SELECT
                 wafer_id,
@@ -43,9 +43,15 @@ def build_silver():
                 setup_id,
                 step_id,
                 result_timestamp,
+                sample_center_x,
+                sample_center_y,
+                die_pitch_x,
+                die_pitch_y,
                 defect_id,
                 x_rel,
                 y_rel,
+                x_index,  
+                y_index,       
                 x_size,
                 y_size,
                 defect_area,
@@ -60,22 +66,25 @@ def build_silver():
 
             FROM dedup
             WHERE rn = 1
+              AND wafer_id IS NOT NULL
+              AND inspection_run_id IS NOT NULL
+              AND inspection_station IS NOT NULL
               AND (
                 (
-                    inspection_station = '1333034'
-                    AND x_size > 0
-                    AND y_size > 0
-                    AND defect_area > 0
+                  inspection_station IN ('1333034', 'AITXP9178')
+                  AND x_size > 0
+                  AND y_size > 0
+                  AND defect_area > 0
                 )
                 OR
                 (
-                    inspection_station = 'TBI-0207-1122'
-                    AND d_size > 0
-                    AND d_size < 200000
+                  inspection_station = 'TBI-0207-1122'
+                  AND d_size > 0
+                  AND d_size < 200000
                 )
               )
         )
-        TO '{sql_path(SILVER_PATH)}'
+        TO 'data/silver/defects_clean.parquet'
         (FORMAT PARQUET)
     """)
 
